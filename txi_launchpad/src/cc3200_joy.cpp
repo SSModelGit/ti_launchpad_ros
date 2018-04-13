@@ -60,8 +60,8 @@ int main(int argc, char **argv)
     ros::NodeHandle nh_param("~");
 	int port;
 	std::string server_ip;
-	nh_param.param<int>("port", port, 2390);
-	nh_param.param<std::string>("server_ip", server_ip, "192.168.0.114");
+	nh_param.param<int>("port", port, 2391);
+	nh_param.param<std::string>("server_ip", server_ip, "192.168.1.114");
  
     if ( (s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
     {

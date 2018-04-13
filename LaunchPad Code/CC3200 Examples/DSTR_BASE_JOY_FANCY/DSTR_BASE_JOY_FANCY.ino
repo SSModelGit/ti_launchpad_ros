@@ -9,8 +9,8 @@
 
  */
 
-#define steering 0
-#define throttle 1
+#define STEERING 0
+#define THROTTLE 1
 #define unused2 2
 #define unused3 3
 #define unused4 4
@@ -29,7 +29,7 @@ char pass[] = "WPApass";    // your network password (use for WPA, or use as key
 
 unsigned int localPort = 2391;      // local port to listen on
 char packetBuffer[255]; //buffer to hold incoming packet
-char  ReplyBuffer[] = "acknowledged";       // a string to send back
+int leftVal, rightVal;
 
 WiFiUDP Udp;
 
@@ -94,8 +94,9 @@ void loop() {
   if (packetSize) {
     getPacket(packetSize);
     Serial.println("PWM SET");
-    leftJoyWrite();
-    rightJoyWrite();
+    joyToTank(packetBuffer[STEERING], packetBuffer[THROTTLE])
+    rightWheelWrite();
+    leftWheelWrite();
   }
   // Behavior list:
   // Left Joystick - up dims red LED, down does nothing
@@ -156,28 +157,33 @@ void printPacketInfo() {
   Serial.print("\n");
 }
 
-void leftJoyWrite() {
-  if(packetBuffer[steering] < 0x7f) { // original was 0xbb
+void joyToTank(int steering, int throttle) {
+  leftVal = max(throttle - max(steering - 127, 0), 0);
+  rightVal = max(throttle - max(127 - steering, 0), 0);
+}
+
+void rightWheelWrite() {
+  if(rightVal < 127) { // original was 0xbb
     Serial.println("BB");
-    motorWrite(RED_LED, packetBuffer[steering]); //If byte 2 was 0xbb then this writes the speed from byte 3 to the pin for RED_LED
+    motorWrite(RED_LED, rightVal); //If byte 2 was 0xbb then this writes the speed from byte 3 to the pin for RED_LED
     analogWrite(31, 255);
   }
   
-  if(packetBuffer[steering] >= 0x7f) { // original was 0xaa
+  if(rightVal >= 127) { // original was 0xaa
     Serial.println("AA");
-    motorWrite(31, packetBuffer[steering]); //If byte 2 was 0xaa then this writes the speed from byte 3 to pin 31
+    motorWrite(31, rightVal); //If byte 2 was 0xaa then this writes the speed from byte 3 to pin 31
     analogWrite(RED_LED, 255);
   }
 }
 
-void rightJoyWrite() {
-  if(packetBuffer[throttle] < 0x7f) { //This is checking the hex value of byte 0 for the direction
-    motorWrite(GREEN_LED, packetBuffer[throttle]); //If byte 0 was 0xbb then this writes the speed from byte 1 to the pin for GREEN_LED
+void leftWheelWrite() {
+  if(leftVal < 127) { //This is checking the hex value of byte 0 for the direction
+    motorWrite(GREEN_LED, leftVal); //If byte 0 was 0xbb then this writes the speed from byte 1 to the pin for GREEN_LED
     analogWrite(YELLOW_LED, 255);             
   }
   
-  if(packetBuffer[throttle] >= 0x7f) {
-    motorWrite(YELLOW_LED, packetBuffer[throttle]); //If byte 0 was 0xaa then this writes the speed from btye 1 to the pin for YELLOW_LED
+  if(leftVal >= 127) {
+    motorWrite(YELLOW_LED, leftVal); //If byte 0 was 0xaa then this writes the speed from btye 1 to the pin for YELLOW_LED
     analogWrite(GREEN_LED, 255);
   }
 }

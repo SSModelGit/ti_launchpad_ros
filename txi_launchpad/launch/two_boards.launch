@@ -1,7 +1,8 @@
 <launch>
  <!-- socket node -->
+ <!-- remember to set computer ip to something that matches the first three numbers of the IP of the board -->
   <node pkg="txi_launchpad" type="cc3200_joy" name="cc3200_joy_1">
-    <param name="port" value="2391" />
+    <param name="port" value="3553" />
 	<param name="server_ip" type="string" value="192.168.0.117" />
   </node>
 
