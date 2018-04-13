@@ -1,0 +1,21 @@
+<launch>
+ <!-- socket node -->
+  <node pkg="txi_launchpad" type="cc3200_joy" name="cc3200_joy_1">
+    <param name="port" value="2391" />
+	<param name="server_ip" type="string" value="192.168.0.117" />
+  </node>
+
+  <!-- 2nd socket node -->
+  <node pkg="txi_launchpad" type="cc3200_joy" name="cc3200_joy_2">
+    <param name="port" value="3553" />
+	<param name="server_ip" type="string" value="192.168.0.113" />
+  </node>
+
+ <!-- joy node -->
+  <node respawn="true" pkg="joy"
+        type="joy_node" name="gru_joy" >
+    <param name="dev" type="string" value="/dev/input/js0" />
+    <param name="deadzone" value="0.50" />
+  </node>
+
+</launch>
