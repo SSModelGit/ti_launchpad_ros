@@ -94,7 +94,7 @@ void loop() {
   if (packetSize) {
     getPacket(packetSize);
     Serial.println("PWM SET");
-    joyToTank(packetBuffer[STEERING], packetBuffer[THROTTLE])
+    joyToTank(packetBuffer[STEERING], packetBuffer[THROTTLE]);
     rightWheelWrite();
     leftWheelWrite();
   }
@@ -158,32 +158,32 @@ void printPacketInfo() {
 }
 
 void joyToTank(int steering, int throttle) {
-  leftVal = max(throttle - max(steering - 127, 0), 0);
-  rightVal = max(throttle - max(127 - steering, 0), 0);
+  leftVal = min(max(throttle - steering - 127, 0), 255);
+  rightVal = min(max(throttle - 127 - steering, 0), 255);
 }
 
-void rightWheelWrite() {
-  if(rightVal < 127) { // original was 0xbb
+void leftWheelWrite() {
+  if(leftVal < 127) { // original was 0xbb
     Serial.println("BB");
-    motorWrite(RED_LED, rightVal); //If byte 2 was 0xbb then this writes the speed from byte 3 to the pin for RED_LED
+    motorWrite(RED_LED, leftVal); //If byte 2 was 0xbb then this writes the speed from byte 3 to the pin for RED_LED
     analogWrite(31, 255);
   }
   
-  if(rightVal >= 127) { // original was 0xaa
+  if(leftVal >= 127) { // original was 0xaa
     Serial.println("AA");
-    motorWrite(31, rightVal); //If byte 2 was 0xaa then this writes the speed from byte 3 to pin 31
+    motorWrite(31, leftVal); //If byte 2 was 0xaa then this writes the speed from byte 3 to pin 31
     analogWrite(RED_LED, 255);
   }
 }
 
-void leftWheelWrite() {
-  if(leftVal < 127) { //This is checking the hex value of byte 0 for the direction
-    motorWrite(GREEN_LED, leftVal); //If byte 0 was 0xbb then this writes the speed from byte 1 to the pin for GREEN_LED
+void rightWheelWrite() {
+  if(rightVal < 127) { //This is checking the hex value of byte 0 for the direction
+    motorWrite(GREEN_LED, rightVal); //If byte 0 was 0xbb then this writes the speed from byte 1 to the pin for GREEN_LED
     analogWrite(YELLOW_LED, 255);             
   }
   
-  if(leftVal >= 127) {
-    motorWrite(YELLOW_LED, leftVal); //If byte 0 was 0xaa then this writes the speed from btye 1 to the pin for YELLOW_LED
+  if(rightVal >= 127) {
+    motorWrite(YELLOW_LED, rightVal); //If byte 0 was 0xaa then this writes the speed from btye 1 to the pin for YELLOW_LED
     analogWrite(GREEN_LED, 255);
   }
 }
