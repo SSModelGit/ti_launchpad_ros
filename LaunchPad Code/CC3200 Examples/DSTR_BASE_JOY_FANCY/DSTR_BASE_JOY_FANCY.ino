@@ -24,8 +24,8 @@
 
 int status = WL_IDLE_STATUS;
 IPAddress ip(192, 168, 0, 118);
-char ssid[] = "Maker"; //  your network SSID (name)
-char pass[] = "3900BotClub";    // your network password (use for WPA, or use as key for WEP)
+char ssid[] = "ssid"; //  your network SSID (name)
+char pass[] = "WPApass";    // your network password (use for WPA, or use as key for WEP)
 
 unsigned int localPort = 2391;      // local port to listen on
 char packetBuffer[255]; //buffer to hold incoming packet
