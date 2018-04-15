@@ -22,12 +22,12 @@
 #define unused9 9
 #define SPEEDSCALE 10
 #define MODE 11
-#define MAXBUF
+#define MAXBUF 255
 
-#define IN1 36
+#define IN1 36 // RED_LED
 #define IN2 31
-#define IN3 37
-#define IN4 38
+#define IN3 37 // GREEN_LED
+#define IN4 38 // YELLOW_LED
 
 // #include <SPI.h>
 #include <WiFi.h>
@@ -105,7 +105,7 @@ void loop() {
   if (packetSize) {
     getPacket(packetSize);
     printPacketInfo();
-    drive();
+    drive(packetBuffer[MODE]);
   }
   // Behavior list:
   // Only when IN1 = RED_LED, IN2 = 31, IN3 = GREEN_LED, IN4 = YELLOW_LED
@@ -200,7 +200,8 @@ void rightWheelWrite(int rVal) {
     motorWrite(IN2, rVal); //If byte 2 was 0xaa then this writes the speed from byte 3 to pin 31
     analogWrite(IN1, 255);
   }
-  Serial.println("RIGHT WHEEL | %d", rVal);
+  Serial.print("RIGHT WHEEL | ");
+  Serial.println(rVal);
 }
 
 void leftWheelWrite(int lVal) {
@@ -213,7 +214,8 @@ void leftWheelWrite(int lVal) {
     motorWrite(IN4, lVal); //If byte 0 was 0xaa then this writes the speed from btye 1 to the pin for YELLOW_LED
     analogWrite(IN3, 255);
   }
-  Serial.println("LEFT WHEEL | %d", lVal);
+  Serial.print("LEFT WHEEL | ");
+  Serial.println(lVal);
 }
 
 void motorWrite(int motorPin, int output) {
