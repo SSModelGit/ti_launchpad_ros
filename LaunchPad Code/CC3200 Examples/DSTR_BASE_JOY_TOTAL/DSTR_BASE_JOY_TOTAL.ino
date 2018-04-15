@@ -11,12 +11,18 @@
 
 #define STEERING 0
 #define THROTTLE 1
+#define LEFT 1
 #define unused2 2
 #define unused3 3
-#define unused4 4
+#define RIGHT 4
 #define unused5 5
 #define unused6 6
 #define unused7 7
+#define unused8 8
+#define unused9 9
+#define SPEEDSCALE 10
+#define MODE 11
+#define MAXBUF
 
 // #include <SPI.h>
 #include <WiFi.h>
@@ -28,7 +34,7 @@ char ssid[] = "ssid"; //  your network SSID (name)
 char pass[] = "WPApass";    // your network password (use for WPA, or use as key for WEP)
 
 unsigned int localPort = 2391;      // local port to listen on
-char packetBuffer[255]; //buffer to hold incoming packet
+char packetBuffer[MAXBUF]; //buffer to hold incoming packet
 int leftVal, rightVal;
 
 WiFiUDP Udp;
@@ -82,7 +88,7 @@ void setup() {
   printWifiStatus();
   flash();
 
-  Serial.println("\nStarting new connection to server...");
+  Serial.println("\nStarting connection to server...");
   // if you get a connection, report back via serial:
   Udp.begin(localPort);
 }
@@ -94,14 +100,17 @@ void loop() {
   if (packetSize) {
     getPacket(packetSize);
     printPacketInfo();
-    Serial.println("PWM SET");
-    joyToTank(packetBuffer[STEERING], packetBuffer[THROTTLE]);
-    rightWheelWrite();
-    leftWheelWrite();
+    drive();
   }
   // Behavior list:
+  // TANK BEHAVIOR
   // Left Joystick - up dims red LED, down does nothing
   // Right Joystick - up dims yellow LED, down dims green LED
+  
+  // JOY BEHAVIOR
+  // Left Joystick - up dims yellow LED and red LED, down dims green LED
+  //                 right dims green LED and red LED, left dims yellow LED
+  // Right Joystick - nothing
 }
 
 void printWifiStatus() {
@@ -133,7 +142,7 @@ void getPacket(int pSize) {
   Serial.print(", to ");
   Serial.println(localIp);
   // read the packet into packetBufffer
-  int len = Udp.read(packetBuffer, 255);
+  int len = Udp.read(packetBuffer, MAXBUF);
   if (len > 0) packetBuffer[len] = 0;
 }
 
@@ -158,35 +167,47 @@ void printPacketInfo() {
   Serial.print("\n");
 }
 
+void drive(int opMode) {
+  if (opMode == 2) {
+    joyToTank(packetBuffer[STEERING], packetBuffer[THROTTLE]);
+    rightWheelWrite(rightVal);
+    leftWheelWrite(leftVal);
+  }
+  else {
+    rightWheelWrite(packetBuffer[RIGHT]);
+    leftWheelWrite(packetBuffer[LEFT]);
+  }
+}
+
 void joyToTank(int steering, int throttle) {
   leftVal = min(max(throttle - steering + 128, 0), 255);
   rightVal = min(max(throttle - 127 + steering, 0), 255);
 }
 
-void rightWheelWrite() {
-  if(rightVal >= 127) { // original was 0xbb
-    Serial.println("BB");
-    motorWrite(RED_LED, rightVal); //If byte 2 was 0xbb then this writes the speed from byte 3 to the pin for RED_LED
+void rightWheelWrite(int rVal) {
+  if(rVal >= 127) { // original was 0xbb
+    motorWrite(RED_LED, rVal); //If byte 2 was 0xbb then this writes the speed from byte 3 to the pin for RED_LED
     analogWrite(31, 255);
   }
   
-  if(rightVal < 127) { // original was 0xaa
-    Serial.println("AA");
-    motorWrite(31, rightVal); //If byte 2 was 0xaa then this writes the speed from byte 3 to pin 31
+  if(rVal < 127) { // original was 0xaa
+    motorWrite(31, rVal); //If byte 2 was 0xaa then this writes the speed from byte 3 to pin 31
     analogWrite(RED_LED, 255);
   }
+  Serial.println("RIGHT WHEEL | %d", rVal);
 }
 
-void leftWheelWrite() {
-  if(leftVal >= 127) { //This is checking the hex value of byte 0 for the direction
-    motorWrite(GREEN_LED, leftVal); //If byte 0 was 0xbb then this writes the speed from byte 1 to the pin for GREEN_LED
+void leftWheelWrite(int lVal) {
+  if(lVal >= 127) { //This is checking the hex value of byte 0 for the direction
+    motorWrite(GREEN_LED, lVal); //If byte 0 was 0xbb then this writes the speed from byte 1 to the pin for GREEN_LED
     analogWrite(YELLOW_LED, 255);             
   }
   
-  if(leftVal < 127) {
-    motorWrite(YELLOW_LED, leftVal); //If byte 0 was 0xaa then this writes the speed from btye 1 to the pin for YELLOW_LED
+  if(lVal < 127) {
+    motorWrite(YELLOW_LED, lVal); //If byte 0 was 0xaa then this writes the speed from btye 1 to the pin for YELLOW_LED
     analogWrite(GREEN_LED, 255);
   }
+  Serial.println("LEFT WHEEL | %d", lVal);
 }
 
 void motorWrite(int motorPin, int output) {

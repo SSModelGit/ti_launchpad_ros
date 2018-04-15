@@ -17,6 +17,10 @@
 #define unused5 5
 #define unused6 6
 #define unused7 7
+#define unused8 8
+#define unused9 9
+#define unused10 10
+#define unused11 11
 
 // #include <SPI.h>
 #include <WiFi.h>
@@ -82,7 +86,7 @@ void setup() {
   printWifiStatus();
   flash();
 
-  Serial.println("\nStarting new connection to server...");
+  Serial.println("\nStarting connection to server...");
   // if you get a connection, report back via serial:
   Udp.begin(localPort);
 }

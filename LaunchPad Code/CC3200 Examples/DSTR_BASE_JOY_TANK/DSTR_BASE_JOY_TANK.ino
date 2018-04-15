@@ -17,6 +17,10 @@
 #define unused5 5
 #define unused6 6
 #define unused7 7
+#define unused8 8
+#define unused9 9
+#define unused10 10
+#define unused11 11
 
 // #include <SPI.h>
 #include <WiFi.h>
@@ -29,7 +33,6 @@ char pass[] = "WPApass";    // your network password (use for WPA, or use as key
 
 unsigned int localPort = 2391;      // local port to listen on
 char packetBuffer[255]; //buffer to hold incoming packet
-char  ReplyBuffer[] = "acknowledged";       // a string to send back
 
 WiFiUDP Udp;
 
@@ -93,6 +96,7 @@ void loop() {
   int packetSize = Udp.parsePacket();
   if (packetSize) {
     getPacket(packetSize);
+    printPacketInfo();
     Serial.println("PWM SET");
     rightWheelWrite();
     leftWheelWrite();
