@@ -24,6 +24,11 @@
 #define MODE 11
 #define MAXBUF
 
+#define IN1 36
+#define IN2 31
+#define IN3 37
+#define IN4 38
+
 // #include <SPI.h>
 #include <WiFi.h>
 #include <WiFiUdp.h>
@@ -103,6 +108,7 @@ void loop() {
     drive();
   }
   // Behavior list:
+  // Only when IN1 = RED_LED, IN2 = 31, IN3 = GREEN_LED, IN4 = YELLOW_LED
   // TANK BEHAVIOR
   // Left Joystick - up dims red LED, down does nothing
   // Right Joystick - up dims yellow LED, down dims green LED
@@ -186,26 +192,26 @@ void joyToTank(int steering, int throttle) {
 
 void rightWheelWrite(int rVal) {
   if(rVal >= 127) { // original was 0xbb
-    motorWrite(RED_LED, rVal); //If byte 2 was 0xbb then this writes the speed from byte 3 to the pin for RED_LED
-    analogWrite(31, 255);
+    motorWrite(IN1, rVal); //If byte 2 was 0xbb then this writes the speed from byte 3 to the pin for RED_LED
+    analogWrite(IN2, 255);
   }
   
   if(rVal < 127) { // original was 0xaa
-    motorWrite(31, rVal); //If byte 2 was 0xaa then this writes the speed from byte 3 to pin 31
-    analogWrite(RED_LED, 255);
+    motorWrite(IN2, rVal); //If byte 2 was 0xaa then this writes the speed from byte 3 to pin 31
+    analogWrite(IN1, 255);
   }
   Serial.println("RIGHT WHEEL | %d", rVal);
 }
 
 void leftWheelWrite(int lVal) {
   if(lVal >= 127) { //This is checking the hex value of byte 0 for the direction
-    motorWrite(GREEN_LED, lVal); //If byte 0 was 0xbb then this writes the speed from byte 1 to the pin for GREEN_LED
-    analogWrite(YELLOW_LED, 255);             
+    motorWrite(IN3, lVal); //If byte 0 was 0xbb then this writes the speed from byte 1 to the pin for GREEN_LED
+    analogWrite(IN4, 255);             
   }
   
   if(lVal < 127) {
-    motorWrite(YELLOW_LED, lVal); //If byte 0 was 0xaa then this writes the speed from btye 1 to the pin for YELLOW_LED
-    analogWrite(GREEN_LED, 255);
+    motorWrite(IN4, lVal); //If byte 0 was 0xaa then this writes the speed from btye 1 to the pin for YELLOW_LED
+    analogWrite(IN3, 255);
   }
   Serial.println("LEFT WHEEL | %d", lVal);
 }
