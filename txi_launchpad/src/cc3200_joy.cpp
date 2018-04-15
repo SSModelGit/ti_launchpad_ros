@@ -13,7 +13,9 @@
 #include <ros/ros.h>
 #include <sensor_msgs/Joy.h>
 
-#define BUFLEN 8  //Max length of buffer
+#define BUFLEN 12  //Max length of buffer
+#define TANK 1
+#define JOY 2
  
 void error(char *s)
 {
@@ -21,6 +23,8 @@ void error(char *s)
     exit(1);
 }
 
+float speedScale = 1.0;
+int mode = TANK;
 unsigned char message[BUFLEN];
 struct sockaddr_in si_other;
 int s, i, slen=sizeof(si_other);
@@ -28,14 +32,39 @@ int s, i, slen=sizeof(si_other);
 void joyCallback(const sensor_msgs::Joy::ConstPtr& joy) {
 	int j;
 	uint8_t joyVal[BUFLEN];
-	joyVal[0] = (int) (127.5 * (joy->axes[0] + 1.0));
-	joyVal[1] = (int) (127.5 * (joy->axes[1] + 1.0));
-	joyVal[2] = (int) (127.5 * (-1.0 * joy->axes[2] + 1.0));
-	joyVal[3] = (int) (127.5 * (joy->axes[3] + 1.0));
-	joyVal[4] = (int) (127.5 * (joy->axes[4] + 1.0));
-	joyVal[5] = (int) (127.5 * (-1.0 * joy->axes[5] + 1.0));
-	joyVal[6] = (int) (127.5 * (joy->axes[6] + 1.0));
-	joyVal[7] = (int) (127.5 * (joy->axes[7] + 1.0));
+    
+    if(joy->buttons[0] == 1 && joy->buttons[1] == 0) {
+        speedScale = 2.0; // full speed if the B button was pressed - default state
+    }
+    else if(joy->buttons[0] == 0 && joy->buttons[1] == 1) {
+        speedScale = 1.0; // half speed if the A button was pressed
+    }
+    else if(joy->buttons[0] == 1 && joy->buttons[1] == 1) {
+        speedScale = 2.0; // mashing buttons will result in half speed
+    }
+
+    if(joy->buttons[2] == 1 && joy->buttons[3] == 0) {
+        mode = TANK; // X button runs TANK mode
+    }
+    else if(joy->buttons[2] == 0 && joy->buttons[3] == 1) {
+        mode = JOY; // Y button runs JOY mode
+    }
+    else if(joy->buttons[2] == 1 && joy->buttons[3] == 1) {
+        mode = TANK; // mashing both buttons will give way to TANK mode
+    }
+
+	joyVal[0] = (int) (127.5 * (joy->axes[0] / speedScale + 1.0)); // Left joystick L-R axes
+	joyVal[1] = (int) (127.5 * (joy->axes[1] / speedScale + 1.0)); // Left joystick U-D axes
+	joyVal[2] = (int) (127.5 * (-1.0 * joy->axes[2] + 1.0) / speedScale); // LT
+	joyVal[3] = (int) (127.5 * (joy->axes[3] / speedScale + 1.0)); // Right joystick L-R axes
+	joyVal[4] = (int) (127.5 * (joy->axes[4] / speedScale + 1.0)); // Right joystick U-D axes
+	joyVal[5] = (int) (127.5 * (-1.0 * joy->axes[5] + 1.0) / speedScale); // RT
+	joyVal[6] = (int) (127.5 * (joy->axes[6] / speedScale + 1.0)); // crosspad L-R
+	joyVal[7] = (int) (127.5 * (joy->axes[7] / speedScale + 1.0)); // crosspad U-D
+    joyVal[8] = (int) (255 * joy->buttons[4] / (int) speedScale); // LB
+    joyVal[9] = (int) (255 * joy->buttons[5] / (int) speedScale); // RB
+    joyVal[10] = (int) speedScale; // speed scale value
+    joyVal[11] = mode; // wheels operation mode
 
 	printf("Joystick values: %d | %d | %d | %d | ", joyVal[0], joyVal[1], joyVal[2], joyVal[3]);
 	printf("%d | %d | %d | %d \n", joyVal[4], joyVal[5], joyVal[6], joyVal[7]);
