@@ -24,10 +24,10 @@
 #define MODE 11
 #define MAXBUF 255
 
-#define IN1 36 // RED_LED
+#define IN1 RED_LED
 #define IN2 31
-#define IN3 37 // GREEN_LED
-#define IN4 38 // YELLOW_LED
+#define IN3 GREEN_LED
+#define IN4 YELLOW_LED
 
 // #include <SPI.h>
 #include <WiFi.h>
@@ -46,10 +46,14 @@ WiFiUDP Udp;
 
 void setup() {
   //Setup pins
-  pinMode(RED_LED, OUTPUT);
-  pinMode(GREEN_LED, OUTPUT);
-  pinMode(YELLOW_LED, OUTPUT);
-  pinMode(31, OUTPUT);
+  // pinMode(RED_LED, OUTPUT); digitalWrite(RED_LED, LOW);
+  // pinMode(GREEN_LED, OUTPUT); digitalWrite(GREEN_LED, LOW);
+  // pinMode(YELLOW_LED, OUTPUT); digitalWrite(YELLOW_LED, LOW);
+
+  pinMode(IN1, OUTPUT); digitalWrite(IN1, LOW);
+  pinMode(IN2, OUTPUT); digitalWrite(IN2, LOW);
+  pinMode(IN3, OUTPUT); digitalWrite(IN3, LOW);
+  pinMode(IN4, OUTPUT); digitalWrite(IN4, LOW);
   
   //Initialize serial and wait for port to open:
   Serial.begin(115200);
