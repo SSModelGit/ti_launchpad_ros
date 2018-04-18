@@ -9,38 +9,39 @@
 
  */
 
-#define STEERING 0
-#define THROTTLE 1
-#define LEFT 1
-#define unused2 2
+#define unused0 0
+#define unused1 1
+#define CLAWOPEN 2
 #define unused3 3
-#define RIGHT 4
-#define unused5 5
-#define unused6 6
-#define unused7 7
-#define unused8 8
-#define unused9 9
+#define unused4 4
+#define CLAWCLOSE 5
+#define YAW 6
+#define TELESCOPE 7
+#define CLAWUP 8
+#define CLAWDOWN 9
 #define SPEEDSCALE 10
 #define MODE 11
 #define MAXBUF 255
 
-#define IN1 RED_LED
-#define IN2 31
-#define IN3 GREEN_LED
-#define IN4 YELLOW_LED
+#define SLIDER RED_LED
+#define BASE GREEN_LED
+#define DROPPER YELLOW_LED
+#define GRABBER 31
 
-// #include <SPI.h>
 #include <WiFi.h>
 #include <WiFiUdp.h>
+#include <Servo.h>
 
 int status = WL_IDLE_STATUS;
-IPAddress ip(192, 168, 0, 118);
+IPAddress ip(192, 168, 0, 119);
 char ssid[] = "ssid"; //  your network SSID (name)
 char pass[] = "WPApass";    // your network password (use for WPA, or use as key for WEP)
 
 unsigned int localPort = 2391;      // local port to listen on
 char packetBuffer[MAXBUF]; //buffer to hold incoming packet
 int leftVal, rightVal;
+
+Servo telescope, yaw, drop, claw;
 
 WiFiUDP Udp;
 
@@ -50,10 +51,10 @@ void setup() {
   // pinMode(GREEN_LED, OUTPUT); digitalWrite(GREEN_LED, LOW);
   // pinMode(YELLOW_LED, OUTPUT); digitalWrite(YELLOW_LED, LOW);
 
-  pinMode(IN1, OUTPUT); digitalWrite(IN1, LOW);
-  pinMode(IN2, OUTPUT); digitalWrite(IN2, LOW);
-  pinMode(IN3, OUTPUT); digitalWrite(IN3, LOW);
-  pinMode(IN4, OUTPUT); digitalWrite(IN4, LOW);
+  telescope.attach(SLIDER);
+  yaw.attach(BASE);
+  drop.attach(DROPPER);
+  claw.attach(GRABBER);
   
   //Initialize serial and wait for port to open:
   Serial.begin(115200);
@@ -66,8 +67,7 @@ void setup() {
     // Connect to WPA/WPA2 network. Change this line if using open or WEP network:
     status = WiFi.begin(ssid, pass);
 
-    /* for debugging purposes only
-    int i = 0;
+    /* int i = 0;
     for(int j = 0; j < 6; j++) {
       switch(i) {
         case 1:
@@ -93,6 +93,7 @@ void setup() {
           break;
       }
     } */
+    delay(900); // remove the LED feedback - its purpose is to only serve as a debugger
   }
   Serial.println("Connected to wifi");
   printWifiStatus();
@@ -110,18 +111,14 @@ void loop() {
   if (packetSize) {
     getPacket(packetSize);
     printPacketInfo();
-    drive(packetBuffer[MODE]);
+    driveArm();
   }
   // Behavior list:
-  // Only when IN1 = RED_LED, IN2 = 31, IN3 = GREEN_LED, IN4 = YELLOW_LED
-  // TANK BEHAVIOR
-  // Left Joystick - up dims red LED, down does nothing
-  // Right Joystick - up dims yellow LED, down dims green LED
-  
-  // JOY BEHAVIOR
-  // Left Joystick - up dims yellow LED and red LED, down dims green LED
-  //                 right dims green LED and red LED, left dims yellow LED
-  // Right Joystick - nothing
+  // CROSSPAD - UP telescopes out, DOWN telescopes in, LEFT rotates left, RIGHT rotates right
+  // LB - Raises CLAW
+  // RB - Lowers CLAW
+  // LT - Opens CLAW
+  // RT - Closes CLAW
 }
 
 void printWifiStatus() {
@@ -174,71 +171,44 @@ void printPacketInfo() {
   Serial.print(" | ");
   Serial.print(packetBuffer[6], DEC);
   Serial.print(" | ");
-  Serial.println(packetBuffer[7], DEC);
+  Serial.print(packetBuffer[7], DEC);
+  Serial.print(" | ");
+  Serial.print(packetBuffer[8], DEC);
+  Serial.print(" | ");
+  Serial.print(packetBuffer[9], DEC);
+  Serial.print(" | ");
+  Serial.print(packetBuffer[10], DEC);
+  Serial.print(" | ");
+  Serial.println(packetBuffer[11], DEC);
   Serial.print("\n");
 }
 
-void drive(int opMode) {
-  if (opMode == 2) {
-    joyToTank(packetBuffer[STEERING], packetBuffer[THROTTLE]);
-    rightWheelWrite(rightVal);
-    leftWheelWrite(leftVal);
-  }
-  else {
-    rightWheelWrite(packetBuffer[RIGHT]);
-    leftWheelWrite(packetBuffer[LEFT]);
-  }
-}
-
-void joyToTank(int steering, int throttle) {
-  leftVal = min(max(throttle - steering + 128, 0), 255);
-  rightVal = min(max(throttle - 127 + steering, 0), 255);
-}
-
-void rightWheelWrite(int rVal) {
-  if(rVal >= 127) { // original was 0xbb
-    motorWrite(IN1, rVal); //If byte 2 was 0xbb then this writes the speed from byte 3 to the pin for RED_LED
-    analogWrite(IN2, 255);
-  }
+void driveArm() {
+  // follows crane setup - rotation of base, horizontal telescoping of arm, dropping and lifting of the grabber, and grabbing motions at the end actuator
   
-  if(rVal < 127) { // original was 0xaa
-    motorWrite(IN2, rVal); //If byte 2 was 0xaa then this writes the speed from byte 3 to pin 31
-    analogWrite(IN1, 255);
-  }
-  Serial.print("RIGHT WHEEL | ");
-  Serial.println(rVal);
+  // Drive the yawing of the base of the arm
+  int yawVal = (int) (180.0/255.0 * (float) packetBuffer[YAW]);
+  yaw.write(yawVal); // pressing the left of the crosspad makes the servo spin counterclockwise, the right does clockwise
+  Serial.print(yawVal); Serial.print(" | ");
+
+  // Drive the telescoping of the arm
+  int telescopeVal = (int) (140.0/255.0 * (float) packetBuffer[TELESCOPE]);
+  telescope.write(telescopeVal); // pressing up on the crosspad causes counterclockwise servo rotation, down causes clockwise
+  Serial.print(telescopeVal); Serial.print(" | ");
+
+  // Drive the claw's dropping and lifting motion
+  int clawVertVal = 70 + (35 * (int) packetBuffer[CLAWDOWN]) -  (35 * (int) packetBuffer[CLAWUP]); // currently set such that counterclockwise lowers the claw, and clockwise raises it
+  drop.write(clawVertVal);
+  Serial.print(clawVertVal); Serial.print(" | ");
+
+  // Drive the claw grabbing motion
+  int grabVal = 70 + (10 * (int) packetBuffer[CLAWOPEN]) -  (10 * (int) packetBuffer[CLAWCLOSE]); // currently set such that counterclockwise servo rotation opens the claw, and clockwise closes it
+  claw.write(grabVal);
+  Serial.println(grabVal);
 }
 
-void leftWheelWrite(int lVal) {
-  if(lVal >= 127) { //This is checking the hex value of byte 0 for the direction
-    motorWrite(IN3, lVal); //If byte 0 was 0xbb then this writes the speed from byte 1 to the pin for GREEN_LED
-    analogWrite(IN4, 255);             
-  }
-  
-  if(lVal < 127) {
-    motorWrite(IN4, lVal); //If byte 0 was 0xaa then this writes the speed from btye 1 to the pin for YELLOW_LED
-    analogWrite(IN3, 255);
-  }
-  Serial.print("LEFT WHEEL | ");
-  Serial.println(lVal);
-}
-
-void motorWrite(int motorPin, int output) {
-  Serial.print(output);
-  Serial.print(" | ");
-  int adjustedOut;
-  if (output >= 127) {
-    adjustedOut = min(max(510 - 2 * output, 0), 255);
-  }
-  else {
-    adjustedOut = min(max( (int) (2.03 * (float) output), 0), 255);
-  }
-  Serial.println(adjustedOut);
-  analogWrite(motorPin, adjustedOut);
-}
-
-/* for debugging purposes only
-void flash() {
+// meant for debugger purposes only
+/* void flash() {
   digitalWrite(RED_LED, HIGH);
   digitalWrite(GREEN_LED, HIGH);
   digitalWrite(YELLOW_LED, HIGH);
