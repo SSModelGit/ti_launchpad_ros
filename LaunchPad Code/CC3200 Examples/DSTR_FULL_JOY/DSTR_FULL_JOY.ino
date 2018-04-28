@@ -39,7 +39,7 @@ Purpose: Receive a UDP string via an in-built WiFi shield on the CC3200 LaunchPa
 #include <Servo.h>
 
 char ssid[] = "GRU"; //  your network SSID (name)
-char pass[] = "iamgru";    // your network password (use for WPA, or use as key for WEP)
+char pass[] = "iamgruuu";    // your network password (use for WPA, or use as key for WEP)
 
 unsigned int localPort = 2391;      // local port to listen on
 char packetBuffer[MAXBUF]; //buffer to hold incoming packet
