@@ -48,7 +48,8 @@ int leftVal, rightVal;
 Servo telescope, yaw, drop, claw;
 unsigned long timer, lastTime;
 int yawVal, telescopeVal, clawVertVal, grabVal;
-int yawIncrement = 10; int grabIncrement = 10; int interval = 5; // time between each update of servo cycle, in milliseconds
+// int yawIncrement = 10; int grabIncrement = 10; int interval = 5; // time between each update of servo cycle, in milliseconds
+int yawIncrement = 10; int yawTracker = 0; // time between each update of servo cycle, in milliseconds
 
 WiFiUDP Udp;
 
@@ -60,10 +61,10 @@ void setup() {
   pinMode(IN4, OUTPUT); digitalWrite(IN4, LOW);
 
   // attach servo pins
-  telescope.attach(SLIDER); telescopeVal = 90;
-  yaw.attach(BASE); yawVal = 90;
-  drop.attach(DROPPER); clawVertVal = 90;
-  claw.attach(GRABBER); grabVal = 0;
+  telescope.attach(SLIDER); telescopeVal = 69; telescope.write(telescopeVal);
+  yaw.attach(BASE); yawVal = 90; yaw.write(yawVal);
+  drop.attach(DROPPER); clawVertVal = 69; drop.write(clawVertVal);
+  claw.attach(GRABBER); grabVal = 0; claw.write(grabVal);
   
   //Initialize serial and wait for port to open:
   Serial.begin(250000);
@@ -78,7 +79,7 @@ void setup() {
   // if you get a connection, report back via serial:
   Udp.begin(localPort);
 
-  lastTime = millis();
+  // lastTime = millis();
 }
 
 void loop() {
@@ -175,7 +176,7 @@ void driveArm() {
   // follows crane setup - rotation of base, horizontal telescoping of arm, dropping and lifting of the grabber, and grabbing motions at the end actuator
   
   // Drive the non-continuous servos - yawing of the base of the arm, grabbing of claw
-  timer = millis();
+  /* timer = millis();
   int compGrabVal = (int) packetBuffer[CLAWOPEN] - (int) packetBuffer[CLAWCLOSE];
   if ((timer - lastTime - interval) > 0) {
     yawVal = max(min(yawVal + (int) ((( (float) packetBuffer[YAW] / 127.0) - 1.0) * yawIncrement), 180), 0);
@@ -184,18 +185,30 @@ void driveArm() {
     yaw.write(yawVal); // pressing up on the crosspad causes counterclockwise servo rotation, down causes clockwise
     claw.write(grabVal);
     Serial.print(yawVal); Serial.print(" | ");
+  } */
+
+  if((int) packetBuffer[YAW] != yawTracker) {
+    if( (int) packetBuffer[YAW] > 129 || (int) packetBuffer[YAW] < 125) {
+      yawVal = max(min(yawVal + (int) ((( (float) packetBuffer[YAW] / 127.0) - 1.0) * yawIncrement), 180), 0);
+      yaw.write(yawVal);
+    }
+    yawTracker = (int) packetBuffer[YAW];
   }
+  Serial.print(yawVal); Serial.print(" | ");
 
   // Drive the telescoping of the arm
-  telescopeVal = (int) (140.0/255.0 * (float) packetBuffer[TELESCOPE]);
+  telescopeVal = (int) (138.0/255.0 * (float) packetBuffer[TELESCOPE]);
   telescope.write(telescopeVal);
+  Serial.print(telescopeVal); Serial.print(" | ");
 
   // Drive the claw's dropping and lifting motion
-  clawVertVal = 70 + (35 * (int) packetBuffer[CLAWDOWN]) -  (35 * (int) packetBuffer[CLAWUP]); // currently set such that counterclockwise lowers the claw, and clockwise raises it
+  clawVertVal = max(min(69 + (35 * (int) packetBuffer[CLAWDOWN]) -  (35 * (int) packetBuffer[CLAWUP]), 180), 0); // currently set such that counterclockwise lowers the claw, and clockwise raises it
   drop.write(clawVertVal);
   Serial.print(clawVertVal); Serial.print(" | ");
 
   // Print the claw's grabbing servo value
+  grabVal = 90 + (45 * (int) packetBuffer[CLAWOPEN]) -  (45 * (int) packetBuffer[CLAWCLOSE]);
+  claw.write(grabVal);
   Serial.println(grabVal);
 }
 
